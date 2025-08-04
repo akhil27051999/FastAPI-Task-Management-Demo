@@ -1,0 +1,16 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: task-management-staging
+
+resources:
+  - ../../../../7-kubernetes-python
+
+patchesStrategicMerge:
+  - replica-patch.yaml
+
+images:
+  - name: task-management-api-python
+    newTag: staging-latest
+  - name: task-management-frontend
+    newTag: staging-latest
