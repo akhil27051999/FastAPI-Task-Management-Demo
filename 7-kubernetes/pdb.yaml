@@ -1,0 +1,21 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: task-api-pdb
+  namespace: task-management-python
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: task-api-python
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: task-frontend-pdb
+  namespace: task-management-python
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: task-frontend
