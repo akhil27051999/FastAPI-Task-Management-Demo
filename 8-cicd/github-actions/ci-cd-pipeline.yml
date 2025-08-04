@@ -1,0 +1,153 @@
+name: CI/CD Pipeline - Python FastAPI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+env:
+  REGISTRY: docker.io
+  API_IMAGE_NAME: task-management-api-python
+  FRONTEND_IMAGE_NAME: task-management-frontend
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        cd 2-source-code
+        pip install -r requirements.txt
+        pip install -r requirements-dev.txt
+    
+    - name: Run linting
+      run: |
+        cd 2-source-code
+        flake8 app/ --max-line-length=88
+    
+    - name: Run type checking
+      run: |
+        cd 2-source-code
+        mypy app/ --ignore-missing-imports
+    
+    - name: Run tests
+      run: |
+        cd 2-source-code
+        pytest tests/ --cov=app --cov-report=xml
+    
+    - name: Upload coverage
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./2-source-code/coverage.xml
+
+  build-and-push:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+    
+    - name: Login to Docker Hub
+      uses: docker/login-action@v3
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+    
+    - name: Extract metadata for API
+      id: meta-api
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.API_IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+    
+    - name: Build and push API
+      uses: docker/build-push-action@v5
+      with:
+        context: ./2-source-code
+        push: true
+        tags: ${{ steps.meta-api.outputs.tags }}
+        labels: ${{ steps.meta-api.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+    
+    - name: Extract metadata for Frontend
+      id: meta-frontend
+      uses: docker/metadata-action@v5
+      with:
+        images: ${{ env.REGISTRY }}/${{ secrets.DOCKER_USERNAME }}/${{ env.FRONTEND_IMAGE_NAME }}
+        tags: |
+          type=ref,event=branch
+          type=ref,event=pr
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+    
+    - name: Build and push Frontend
+      uses: docker/build-push-action@v5
+      with:
+        context: ./3-frontend
+        push: true
+        tags: ${{ steps.meta-frontend.outputs.tags }}
+        labels: ${{ steps.meta-frontend.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Configure kubectl
+      run: |
+        echo "${{ secrets.KUBECONFIG }}" | base64 -d > kubeconfig
+        export KUBECONFIG=kubeconfig
+    
+    - name: Deploy to Kubernetes
+      run: |
+        export KUBECONFIG=kubeconfig
+        
+        # Update image tags
+        sed -i "s|task-management-api-python:latest|${{ secrets.DOCKER_USERNAME }}/task-management-api-python:main-${{ github.sha }}|g" 7-kubernetes-python/task-api-deployment.yaml
+        sed -i "s|task-management-frontend:latest|${{ secrets.DOCKER_USERNAME }}/task-management-frontend:main-${{ github.sha }}|g" 7-kubernetes-python/frontend-deployment.yaml
+        
+        # Apply manifests
+        kubectl apply -f 7-kubernetes-python/
+        
+        # Wait for rollout
+        kubectl rollout status deployment/task-api-python -n task-management-python
+        kubectl rollout status deployment/task-frontend -n task-management-python
+    
+    - name: Run smoke tests
+      run: |
+        export KUBECONFIG=kubeconfig
+        
+        # Get ingress IP
+        INGRESS_IP=$(kubectl get ingress task-management-ingress -n task-management-python -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+        
+        # Wait for services to be ready
+        sleep 30
+        
+        # Test API health
+        curl -f http://$INGRESS_IP/health || exit 1
+        
+        # Test API endpoints
+        curl -f http://$INGRESS_IP/api/tasks || exit 1
+        
+        # Test frontend
+        curl -f http://$INGRESS_IP/ || exit 1
