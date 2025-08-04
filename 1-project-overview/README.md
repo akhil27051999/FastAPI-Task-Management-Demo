@@ -1,4 +1,4 @@
-# Task Management API - Python Version
+# Task Management API - Python 
 
 ## 🐍 Project Overview
 
