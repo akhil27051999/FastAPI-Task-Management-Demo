@@ -41,7 +41,7 @@ task-management-api-python/
 │   ├── .env.example                        # Environment variables
 │   ├── alembic.ini                         # Database migrations
 │   └── README.md
-├── 3-frontend/                             # Same as Java version
+├── 3-frontend/                             
 │   ├── src/
 │   │   ├── index.html
 │   │   ├── css/style.css
@@ -49,41 +49,41 @@ task-management-api-python/
 │   ├── Dockerfile
 │   ├── nginx.conf
 │   └── package.json
-├── 4-cloudformation-setup/                 # Same infrastructure
+├── 4-cloudformation-setup/                 
 │   ├── 01-vpc-stack.yaml
 │   ├── 02-ec2-stack.yaml
 │   └── 03-eks-stack.yaml
 ├── 5-containerization/
-│   ├── docker-compose.yml                  # Updated for Python
+│   ├── docker-compose.yml                  
 │   ├── prometheus.yml
 │   └── README.md
 ├── 6-local-build-test/
 │   ├── scripts/
-│   │   ├── build.sh                        # Updated for Python
-│   │   ├── test.sh                         # Python testing
-│   │   └── run-local.sh                    # Python dev server
+│   │   ├── build.sh                        
+│   │   ├── test.sh                         
+│   │   └── run-local.sh                    
 │   └── README.md
 ├── 7-kubernetes/
-│   ├── task-api-deployment.yaml            # Updated Python image
-│   ├── task-api-service.yaml               # Same service config
-│   ├── frontend-deployment.yaml            # Same frontend
-│   ├── mysql-deployment.yaml               # Same database
+│   ├── task-api-deployment.yaml           
+│   ├── task-api-service.yaml              
+│   ├── frontend-deployment.yaml            
+│   ├── mysql-deployment.yaml              
 │   └── ingress.yaml
 ├── 8-cicd/
 │   ├── github-actions/
-│   │   └── ci-cd-pipeline.yml              # Updated for Python
+│   │   └── ci-cd-pipeline.yml          
 │   └── jenkins/
-│       └── Jenkinsfile                     # Updated for Python
+│       └── Jenkinsfile                     
 ├── 9-monitoring/
 │   ├── prometheus/
-│   │   └── prometheus-config.yaml          # Updated Python metrics
+│   │   └── prometheus-config.yaml          
 │   ├── grafana/
 │   └── load-testing/
 │       └── locust/
-│           └── locustfile.py               # Python load testing
+│           └── locustfile.py               
 ├── 10-documentation/
-│   ├── python-api-guide.md                 # Python-specific docs
-│   ├── fastapi-documentation.md            # FastAPI guide
+│   ├── python-api-guide.md                
+│   ├── fastapi-documentation.md           
 │   └── deployment-guide.md
 └── README.md
 ```
