@@ -1,6 +1,6 @@
 # Task Management API - Python 🐍
 
-A modern, high-performance task management REST API built with **FastAPI**, **SQLAlchemy**, and **MySQL**. This Python version offers enterprise-level features with superior performance and developer experience compared to traditional Java Spring Boot applications.
+A modern, high-performance task management REST API built with **FastAPI**, **SQLAlchemy**, and **MySQL**. This project offers enterprise-level features with superior performance and developer experience.
 
 ## 📁 Project Structure
 
