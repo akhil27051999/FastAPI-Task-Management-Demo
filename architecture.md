@@ -99,14 +99,14 @@ Internet User
 │                            │     │                                         │
 │  Backend (Port 8080)       │     │                                         │
 │  ┌─────────────────┐       │     │                                         │
-│  │  Spring Boot    │ ◀─────┘     │                                        │
+│  │  Spring Boot    │ ◀────┘     │                                         │
 │  │                 │             │                                         │
 │  │ GET /api/tasks  │             │                                         │
 │  │ POST /api/tasks │             │                                         │
 │  │ PUT /api/tasks  │             │                                         │
 │  │ DELETE /api/tasks│            │                                         │
 │  │                 │             │                                         │
-│  │ /actuator/*     │ ◀───────────┼─────┐                                   │
+│  │ /actuator/*     │ ◀───────────┼─────┐                                  │
 │  └─────────────────┘             │     │                                   │
 │           │                      │     │                                   │
 │           ▼ JDBC                 │     │                                   │
@@ -120,7 +120,7 @@ Internet User
 │                                  │     │                                   │
 │  Monitoring                      │     │                                   │
 │  ┌─────────────────┐             │     │                                   │
-│  │   Prometheus    │ ◀───────────┘     │                                   │
+│  │   Prometheus    │ ◀──────────┘     │                                   │
 │  │                 │                   │                                   │
 │  │ Scrapes:        │                   │                                   │
 │  │ app:8080/       │                   │                                   │
@@ -130,7 +130,7 @@ Internet User
 │           │                            │                                   │
 │           ▼                            │                                   │
 │  ┌─────────────────┐                   │                                   │
-│  │    Grafana      │ ◀─────────────────┘                                   │
+│  │    Grafana      │ ◀────────────────┘                                   │
 │  │                 │                                                       │
 │  │ Dashboards:     │                                                       │
 │  │ • Spring Boot   │                                                       │
