@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: task-api-config
+  namespace: task-management-python
+data:
+  DATABASE_URL: "mysql+pymysql://taskuser:taskpass@mysql-service:3306/taskdb"
+  PYTHONPATH: "/app"
+  DEBUG: "False"
