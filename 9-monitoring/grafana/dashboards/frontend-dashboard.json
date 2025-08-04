@@ -1,36 +1,184 @@
 {
   "dashboard": {
     "id": null,
-    "title": "Frontend Dashboard",
-    "tags": ["frontend", "nginx"],
+    "title": "Frontend Dashboard - Task Management",
+    "tags": ["frontend", "nginx", "task-management"],
     "timezone": "browser",
     "panels": [
       {
         "id": 1,
-        "title": "HTTP Requests",
+        "title": "HTTP Requests per Second",
         "type": "stat",
         "targets": [
           {
             "expr": "rate(nginx_http_requests_total[5m])",
-            "legendFormat": "Requests/sec"
+            "legendFormat": "Requests/sec",
+            "refId": "A"
           }
         ],
-        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 10},
+                {"color": "red", "value": 50}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 0, "y": 0}
       },
       {
         "id": 2,
         "title": "Response Time",
-        "type": "graph",
+        "type": "timeseries",
         "targets": [
           {
             "expr": "nginx_http_request_duration_seconds",
-            "legendFormat": "Response Time"
+            "legendFormat": "Response Time (s)",
+            "refId": "A"
           }
         ],
-        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "unit": "s"
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 6, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Active Connections",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "nginx_connections_active",
+            "legendFormat": "Active",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 100},
+                {"color": "red", "value": 500}
+              ]
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 12, "y": 0}
+      },
+      {
+        "id": 4,
+        "title": "HTTP Status Codes",
+        "type": "piechart",
+        "targets": [
+          {
+            "expr": "sum by (status) (rate(nginx_http_requests_total[5m]))",
+            "legendFormat": "{{status}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            }
+          }
+        },
+        "gridPos": {"h": 8, "w": 6, "x": 18, "y": 0}
+      },
+      {
+        "id": 5,
+        "title": "Request Rate by Path",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "sum by (uri) (rate(nginx_http_requests_total[5m]))",
+            "legendFormat": "{{uri}}",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "unit": "reqps"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 6,
+        "title": "Error Rate",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "sum(rate(nginx_http_requests_total{status=~\"4..|5..\"}[5m])) / sum(rate(nginx_http_requests_total[5m])) * 100",
+            "legendFormat": "Error Rate %",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "green", "value": null},
+                {"color": "yellow", "value": 1},
+                {"color": "red", "value": 5}
+              ]
+            },
+            "unit": "percent"
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 7,
+        "title": "Bandwidth Usage",
+        "type": "timeseries",
+        "targets": [
+          {
+            "expr": "rate(nginx_http_request_size_bytes[5m])",
+            "legendFormat": "Request Size",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(nginx_http_response_size_bytes[5m])",
+            "legendFormat": "Response Size",
+            "refId": "B"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "palette-classic"
+            },
+            "unit": "bytes"
+          }
+        },
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16}
       }
     ],
     "time": {"from": "now-1h", "to": "now"},
-    "refresh": "5s"
+    "refresh": "5s",
+    "schemaVersion": 30,
+    "version": 1
   }
 }
