@@ -1,0 +1,243 @@
+pipeline {
+    agent any
+    
+    environment {
+        DOCKER_REGISTRY = 'docker.io'
+        DOCKER_CREDENTIALS = credentials('docker-hub-credentials')
+        KUBECONFIG_CREDENTIALS = credentials('kubeconfig')
+        API_IMAGE = 'task-management-api-python'
+        FRONTEND_IMAGE = 'task-management-frontend'
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        
+        stage('Setup Python') {
+            steps {
+                sh '''
+                    python3 --version
+                    pip3 --version
+                '''
+            }
+        }
+        
+        stage('Install Dependencies') {
+            steps {
+                dir('2-source-code') {
+                    sh '''
+                        pip3 install -r requirements.txt
+                        pip3 install -r requirements-dev.txt
+                    '''
+                }
+            }
+        }
+        
+        stage('Code Quality') {
+            parallel {
+                stage('Linting') {
+                    steps {
+                        dir('2-source-code') {
+                            sh 'flake8 app/ --max-line-length=88'
+                        }
+                    }
+                }
+                
+                stage('Type Checking') {
+                    steps {
+                        dir('2-source-code') {
+                            sh 'mypy app/ --ignore-missing-imports'
+                        }
+                    }
+                }
+                
+                stage('Security Scan') {
+                    steps {
+                        dir('2-source-code') {
+                            sh 'pip3 install safety && safety check'
+                        }
+                    }
+                }
+            }
+        }
+        
+        stage('Test') {
+            steps {
+                dir('2-source-code') {
+                    sh '''
+                        pytest tests/ --cov=app --cov-report=xml --cov-report=html --junitxml=test-results.xml
+                    '''
+                }
+            }
+            post {
+                always {
+                    publishTestResults testResultsPattern: '2-source-code/test-results.xml'
+                    publishHTML([
+                        allowMissing: false,
+                        alwaysLinkToLastBuild: true,
+                        keepAll: true,
+                        reportDir: '2-source-code/htmlcov',
+                        reportFiles: 'index.html',
+                        reportName: 'Coverage Report'
+                    ])
+                }
+            }
+        }
+        
+        stage('Build Images') {
+            parallel {
+                stage('Build API') {
+                    steps {
+                        dir('2-source-code') {
+                            script {
+                                def apiImage = docker.build("${DOCKER_REGISTRY}/${API_IMAGE}:${BUILD_NUMBER}")
+                                docker.withRegistry("https://${DOCKER_REGISTRY}", 'docker-hub-credentials') {
+                                    apiImage.push()
+                                    apiImage.push("latest")
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                stage('Build Frontend') {
+                    steps {
+                        dir('3-frontend') {
+                            script {
+                                def frontendImage = docker.build("${DOCKER_REGISTRY}/${FRONTEND_IMAGE}:${BUILD_NUMBER}")
+                                docker.withRegistry("https://${DOCKER_REGISTRY}", 'docker-hub-credentials') {
+                                    frontendImage.push()
+                                    frontendImage.push("latest")
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        stage('Security Scan Images') {
+            parallel {
+                stage('Scan API Image') {
+                    steps {
+                        sh """
+                            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+                            aquasec/trivy image ${DOCKER_REGISTRY}/${API_IMAGE}:${BUILD_NUMBER}
+                        """
+                    }
+                }
+                
+                stage('Scan Frontend Image') {
+                    steps {
+                        sh """
+                            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+                            aquasec/trivy image ${DOCKER_REGISTRY}/${FRONTEND_IMAGE}:${BUILD_NUMBER}
+                        """
+                    }
+                }
+            }
+        }
+        
+        stage('Deploy to Staging') {
+            when {
+                branch 'develop'
+            }
+            steps {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                    sh '''
+                        # Update image tags for staging
+                        sed -i "s|task-management-api-python:latest|${DOCKER_REGISTRY}/${API_IMAGE}:${BUILD_NUMBER}|g" 7-kubernetes-python/task-api-deployment.yaml
+                        sed -i "s|task-management-frontend:latest|${DOCKER_REGISTRY}/${FRONTEND_IMAGE}:${BUILD_NUMBER}|g" 7-kubernetes-python/frontend-deployment.yaml
+                        
+                        # Deploy to staging namespace
+                        kubectl apply -f 7-kubernetes-python/ -n task-management-staging
+                        
+                        # Wait for rollout
+                        kubectl rollout status deployment/task-api-python -n task-management-staging
+                        kubectl rollout status deployment/task-frontend -n task-management-staging
+                    '''
+                }
+            }
+        }
+        
+        stage('Deploy to Production') {
+            when {
+                branch 'main'
+            }
+            steps {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                    sh '''
+                        # Update image tags for production
+                        sed -i "s|task-management-api-python:latest|${DOCKER_REGISTRY}/${API_IMAGE}:${BUILD_NUMBER}|g" 7-kubernetes-python/task-api-deployment.yaml
+                        sed -i "s|task-management-frontend:latest|${DOCKER_REGISTRY}/${FRONTEND_IMAGE}:${BUILD_NUMBER}|g" 7-kubernetes-python/frontend-deployment.yaml
+                        
+                        # Deploy to production
+                        kubectl apply -f 7-kubernetes-python/
+                        
+                        # Wait for rollout
+                        kubectl rollout status deployment/task-api-python -n task-management-python
+                        kubectl rollout status deployment/task-frontend -n task-management-python
+                    '''
+                }
+            }
+        }
+        
+        stage('Smoke Tests') {
+            when {
+                anyOf {
+                    branch 'main'
+                    branch 'develop'
+                }
+            }
+            steps {
+                withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                    sh '''
+                        # Determine namespace based on branch
+                        if [ "${BRANCH_NAME}" = "main" ]; then
+                            NAMESPACE="task-management-python"
+                        else
+                            NAMESPACE="task-management-staging"
+                        fi
+                        
+                        # Get ingress IP
+                        INGRESS_IP=$(kubectl get ingress task-management-ingress -n $NAMESPACE -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+                        
+                        # Wait for services
+                        sleep 30
+                        
+                        # Run smoke tests
+                        curl -f http://$INGRESS_IP/health
+                        curl -f http://$INGRESS_IP/api/tasks
+                        curl -f http://$INGRESS_IP/
+                        curl -f http://$INGRESS_IP/docs
+                    '''
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            cleanWs()
+        }
+        success {
+            echo 'Pipeline succeeded!'
+            slackSend(
+                channel: '#deployments',
+                color: 'good',
+                message: "✅ Python API deployment successful - Build #${BUILD_NUMBER}"
+            )
+        }
+        failure {
+            echo 'Pipeline failed!'
+            slackSend(
+                channel: '#deployments',
+                color: 'danger',
+                message: "❌ Python API deployment failed - Build #${BUILD_NUMBER}"
+            )
+        }
+    }
+}
