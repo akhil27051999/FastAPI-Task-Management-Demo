@@ -61,24 +61,17 @@ curl http://localhost:8000/docs
 - **Grafana**: http://localhost:3000 (admin/admin123)
 - **API Docs**: http://localhost:8000/docs
 
-## 🔄 Migration from Java
-
-1. **Stop Java version**: `docker-compose down`
-2. **Start Python version**: `docker-compose -f docker-compose-python.yml up -d`
-3. **Same database**: Uses existing MySQL data
-4. **Same frontend**: No changes needed
-
 ## 🛠️ Development
 
 ```bash
 # Build only backend
-docker-compose -f docker-compose-python.yml build app
+docker compose -f docker-compose.yml build app
 
 # Restart backend
-docker-compose -f docker-compose-python.yml restart app
+docker compose -f docker-compose.yml restart app
 
 # View backend logs
-docker-compose -f docker-compose-python.yml logs -f app
+docker compose -f docker-compose.yml logs -f app
 ```
 
 ## 🎯 Benefits
