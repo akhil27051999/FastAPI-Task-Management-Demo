@@ -1,0 +1,12 @@
+### Testing Notes:
+- import `pytest` for unit testing .
+- import `TestClient` from fastapi.testclient
+  - This will test the app without launching any server
+  - It tests directly and it is suitable for
+    - Finding bugs at the earlier stage
+    - Reduce downtime of the application
+    - Reduce poor user experience
+    - Avoid loss of trust from customers
+- import `app` from our app.main
+- Client = TestClient(app) [ # variable declared ]
+- Start a Health Check 
