@@ -8,13 +8,13 @@ Complete containerization setup for the Python FastAPI version of the Task Manag
 
 ```bash
 # Start all services
-docker-compose -f docker-compose-python.yml up -d
+docker compose -f docker-compose.yml up -d
 
 # Check status
-docker-compose -f docker-compose-python.yml ps
+docker compose -f docker-compose.yml ps
 
 # View logs
-docker-compose -f docker-compose-python.yml logs -f app
+docker compose -f docker-compose.yml logs -f app
 ```
 
 ## 📊 Services
