@@ -4,6 +4,7 @@
 - import `TestClient` from fastapi.testclient
   - This will test the app without launching any server
   - It tests directly and it is suitable for
+    
     - Finding bugs at the earlier stage
     - Reduce downtime of the application
     - Reduce poor user experience
