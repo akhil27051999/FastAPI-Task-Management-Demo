@@ -23,20 +23,21 @@ services:
       interval: 30s
       start_period: 60s
 
-  # Python Backend Application
+  # Backend Application
   app:
     build:
       context: ../2-source-code
       dockerfile: Dockerfile
-    container_name: task-app-python
+    container_name: task-app
     depends_on:
       mysql:
         condition: service_healthy
     environment:
-      DATABASE_URL: mysql+pymysql://taskuser:taskpass@mysql:3306/taskdb
-      PYTHONPATH: /app
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/taskdb
+      SPRING_DATASOURCE_USERNAME: taskuser
+      SPRING_DATASOURCE_PASSWORD: taskpass
     ports:
-      - "8000:8000"
+      - "8080:8080"
     networks:
       - task-network
 
@@ -60,7 +61,7 @@ services:
     ports:
       - "9090:9090"
     volumes:
-      - ./prometheus-python.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus.yaml:/etc/prometheus/prometheus.yml
     networks:
       - task-network
 
@@ -84,3 +85,4 @@ volumes:
 networks:
   task-network:
     driver: bridge
+
