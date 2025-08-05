@@ -13,8 +13,19 @@
 - `Client = TestClient(app)` --> Variable declared
   
 ### Start a Health Check
-  - `response = client.get("/health")` --> Variable declared
-  - `assert response.status_code == 200` This is the health response we should get with response code 200. `assert` Checks if something is true; fails test if false
-  - Checks if the JSON response is exactly `{"status": "UP"}`.
+- Sends a GET request to /health.
+- Checks if the HTTP response code is 200 OK.
+- Checks if the JSON response is exactly {"status": "UP"}.
 
 
+### Create a Task
+- Defines a dictionary task_data with required fields for a task.
+- Sends a POST request to `/api/tasks/` with that data as JSON.
+- Asserts the response status is `200 OK`.
+- Parses the JSON response.
+- Verifies the response contains the same title and description as the input.
+
+### Test the Task
+- Sends a GET request to  `/api/tasks/`.
+- Asserts the response status code is 200 OK.
+- Checks that the response body is a list (which should contain tasks).
