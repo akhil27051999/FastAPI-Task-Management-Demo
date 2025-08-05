@@ -1,7 +1,7 @@
 ## Unit Testing Notes:
 
 - import `pytest` for unit testing .
-- import `TestClient` from fastapi.testclient
+- import `TestClient` from `fastapi.testclient`
   - This will test the app without launching any server
   - It tests directly and it is suitable for
     
